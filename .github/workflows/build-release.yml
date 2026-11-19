@@ -32,11 +32,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
-
       - name: Build
-        run: ./gradlew --no-daemon clean build
+        run: gradle --no-daemon clean build
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
@@ -69,11 +66,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
-
       - name: Build
-        run: ./gradlew --no-daemon clean build
+        run: gradle --no-daemon clean build
 
       - name: Create release
         uses: softprops/action-gh-release@v2
