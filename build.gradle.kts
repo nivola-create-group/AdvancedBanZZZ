@@ -1,26 +1,30 @@
 plugins {
     `java`
     `maven-publish`
-    id("com.github.johnrengelman.shadow") version "8.1.1" apply false
+    id("com.gradleup.shadow") version "8.3.11" apply false
 }
 
 group = properties["group"] as String
 version = properties["version"] as String
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
 }
 
 allprojects {
     repositories {
         mavenCentral()
         mavenLocal()
+        maven { url = uri("https://maven.canvasmc.io/releases") }
+        maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
         maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
         maven { url = uri("https://repo.md-5.net/content/repositories/snapshots/") }
         maven { url = uri("https://repo.codemc.org/repository/maven-public") }
+        maven { url = uri("https://repo.cloudnetservice.eu/releases") }
         maven { url = uri("https://repo.cloudnetservice.eu/repository/releases/") }
         maven { url = uri("https://cloudnetservice.eu/repositories") }
     }
@@ -31,6 +35,9 @@ subprojects {
     apply(plugin = "maven-publish")
 
     java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(25))
+        }
         withJavadocJar()
         withSourcesJar()
     }
@@ -63,4 +70,21 @@ subprojects {
             }
         }
     }
+}
+
+tasks.named<Jar>("jar") {
+    enabled = false
+}
+
+val copyBundleJar = tasks.register<Copy>("copyBundleJar") {
+    from(project(":bundle").tasks.named("shadowJar"))
+    into(layout.buildDirectory.dir("libs"))
+}
+
+tasks.named("assemble") {
+    dependsOn(copyBundleJar)
+}
+
+tasks.named("build") {
+    dependsOn(copyBundleJar)
 }

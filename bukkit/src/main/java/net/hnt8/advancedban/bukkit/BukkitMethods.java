@@ -27,9 +27,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -98,15 +98,15 @@ public class BukkitMethods implements MethodInterface {
             HttpURLConnection request = (HttpURLConnection) new URL(url).openConnection();
             request.connect();
 
-            JSONParser jp = new JSONParser();
-            JSONObject json = (JSONObject) jp.parse(new InputStreamReader(request.getInputStream()));
+            JsonObject json = JsonParser.parseReader(new InputStreamReader(request.getInputStream(), StandardCharsets.UTF_8)).getAsJsonObject();
 
             String[] keys = key.split("\\|");
             for (int i = 0; i < keys.length - 1; i++) {
-                json = (JSONObject) json.get(keys[i]);
+                json = json.getAsJsonObject(keys[i]);
             }
 
-            return json.get(keys[keys.length - 1]).toString();
+            JsonElement elem = json.get(keys[keys.length - 1]);
+            return elem == null ? null : (elem.isJsonPrimitive() ? elem.getAsString() : elem.toString());
         } catch (Exception exc) {
             return null;
         }
@@ -236,6 +236,16 @@ public class BukkitMethods implements MethodInterface {
         return LegacyComponentSerializer.legacySection().serialize(comp);
     }
 
+    private static final boolean IS_FOLIA;
+    static {
+        boolean folia = false;
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            folia = true;
+        } catch (ClassNotFoundException ignored) {}
+        IS_FOLIA = folia;
+    }
+
     @Override
     public Player[] getOnlinePlayers() {
         return Bukkit.getOnlinePlayers().toArray(new Player[]{});
@@ -243,22 +253,38 @@ public class BukkitMethods implements MethodInterface {
 
     @Override
     public void scheduleAsyncRep(Runnable rn, long l1, long l2) {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(getPlugin(), rn, l1, l2);
+        if (IS_FOLIA) {
+            Bukkit.getAsyncScheduler().runAtFixedRate(getPlugin(), task -> rn.run(), Math.max(1, l1) * 50, Math.max(1, l2) * 50, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } else {
+            Bukkit.getScheduler().runTaskTimerAsynchronously(getPlugin(), rn, l1, l2);
+        }
     }
 
     @Override
     public void scheduleAsync(Runnable rn, long l1) {
-        Bukkit.getScheduler().runTaskLaterAsynchronously(getPlugin(), rn, l1);
+        if (IS_FOLIA) {
+            Bukkit.getAsyncScheduler().runDelayed(getPlugin(), task -> rn.run(), Math.max(1, l1) * 50, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } else {
+            Bukkit.getScheduler().runTaskLaterAsynchronously(getPlugin(), rn, l1);
+        }
     }
 
     @Override
     public void runAsync(Runnable rn) {
-        Bukkit.getScheduler().runTaskAsynchronously(getPlugin(), rn);
+        if (IS_FOLIA) {
+            Bukkit.getAsyncScheduler().runNow(getPlugin(), task -> rn.run());
+        } else {
+            Bukkit.getScheduler().runTaskAsynchronously(getPlugin(), rn);
+        }
     }
 
     @Override
     public void runSync(Runnable rn) {
-        Bukkit.getScheduler().runTask(getPlugin(), rn);
+        if (IS_FOLIA) {
+            Bukkit.getGlobalRegionScheduler().execute(getPlugin(), rn);
+        } else {
+            Bukkit.getScheduler().runTask(getPlugin(), rn);
+        }
     }
 
     @Override
@@ -320,8 +346,11 @@ public class BukkitMethods implements MethodInterface {
     @Override
     public String parseJSON(InputStreamReader json, String key) {
         try {
-            return ((JSONObject) new JSONParser().parse(json)).get(key).toString();
-        } catch (ParseException | IOException e) {
+            JsonElement element = JsonParser.parseReader(json);
+            if (element == null || element.isJsonNull()) return null;
+            JsonElement obj = element.getAsJsonObject().get(key);
+            return obj == null ? null : (obj.isJsonPrimitive() ? obj.getAsString() : obj.toString());
+        } catch (Exception e) {
             BukkitMain.get().getLogger().warning("Error -> " + e.getMessage());
             return null;
         }
@@ -330,8 +359,11 @@ public class BukkitMethods implements MethodInterface {
     @Override
     public String parseJSON(String json, String key) {
         try {
-            return ((JSONObject) new JSONParser().parse(json)).get(key).toString();
-        } catch (ParseException e) {
+            JsonElement element = JsonParser.parseString(json);
+            if (element == null || element.isJsonNull()) return null;
+            JsonElement obj = element.getAsJsonObject().get(key);
+            return obj == null ? null : (obj.isJsonPrimitive() ? obj.getAsString() : obj.toString());
+        } catch (Exception e) {
             return null;
         }
     }

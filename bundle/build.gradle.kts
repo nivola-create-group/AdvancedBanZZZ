@@ -1,5 +1,5 @@
 plugins {
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow")
     `java`
 }
 
@@ -9,7 +9,9 @@ dependencies {
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
-    archiveBaseName.set("${project.rootProject.name}-${project.version}")
+    archiveBaseName.set(project.rootProject.name)
+    archiveClassifier.set("")
+    archiveVersion.set(project.version.toString())
     relocate("org.apache.commons", "net.hnt8.advancedban.shaded.org.apache.commons")
     relocate("org.slf4j", "net.hnt8.advancedban.shaded.org.slf4j")
     relocate("com.zaxxer.hikari", "net.hnt8.advancedban.shaded.com.zaxxer.hikari")

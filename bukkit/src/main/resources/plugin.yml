@@ -4,7 +4,8 @@ main: ${project.groupId}.bukkit.BukkitMain
 authors: ["Author87668", "Leoko", "2vY"]
 prefix: AdvancedBanZ
 softdepend: [Vault]
-api-version: 1.13
+api-version: '26.3'
+folia-supported: true
 
 commands:
   AdvancedBan:
