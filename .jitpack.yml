@@ -1,0 +1,5 @@
+jdk:
+  - openjdk25
+install:
+  - chmod +x gradlew
+  - ./gradlew -Pgroup=com.github.nivola-create-group -Pversion=v4.1.1 publishToMavenLocal --no-daemon
